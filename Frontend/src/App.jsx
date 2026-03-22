@@ -1,25 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const NODE_TYPES = {
-  trigger:   { label: "Trigger",        color: "#0F6E56", bg: "#E1F5EE", border: "#5DCAA5", icon: "⚡" },
-  llm:       { label: "LLM",            color: "#3C3489", bg: "#EEEDFE", border: "#7F77DD", icon: "🧠" },
-  tool:      { label: "Tool",           color: "#185FA5", bg: "#E6F1FB", border: "#378ADD", icon: "🔧" },
-  api:       { label: "API Call",       color: "#854F0B", bg: "#FAEEDA", border: "#EF9F27", icon: "🌐" },
-  output:    { label: "Output",         color: "#3B6D11", bg: "#EAF3DE", border: "#639922", icon: "📤" },
-  condition: { label: "Condition",      color: "#993C1D", bg: "#FAECE7", border: "#D85A30", icon: "◆" },
+  trigger:   { label: "Trigger",   color: "#0F6E56", bg: "#E1F5EE", border: "#5DCAA5", icon: "⚡" },
+  llm:       { label: "LLM",       color: "#3C3489", bg: "#EEEDFE", border: "#7F77DD", icon: "🧠" },
+  tool:      { label: "Tool",      color: "#185FA5", bg: "#E6F1FB", border: "#378ADD", icon: "🔧" },
+  api:       { label: "API Call",  color: "#854F0B", bg: "#FAEEDA", border: "#EF9F27", icon: "🌐" },
+  output:    { label: "Output",    color: "#3B6D11", bg: "#EAF3DE", border: "#639922", icon: "📤" },
+  condition: { label: "Condition", color: "#993C1D", bg: "#FAECE7", border: "#D85A30", icon: "◆" },
 };
 
 const WORKFLOWS = {
   meeting: {
-    name: "Meeting Summary Agent",
-    description: "Transcribe → summarize → extract action items → send to Notion",
+    name: "Meeting Summary",
+    placeholder: "Paste your meeting notes or transcript here...\n\nExample:\nAttendees: Alice, Bob, Carol\nAlice presented Q2 roadmap. Bob raised concerns about timeline. Decided to push launch to July. Carol will send updated spec by Friday.",
+    workflowKey: "meeting_summary",
     nodes: [
-      { id: "t1", type: "trigger",   x: 60,  y: 180, label: "Meeting Transcript",  sub: "Text / audio input" },
-      { id: "n1", type: "llm",       x: 260, y: 180, label: "Summarize",           sub: "GPT-4o · temp 0.3" },
-      { id: "n2", type: "tool",      x: 460, y: 100, label: "Extract Action Items", sub: "LangChain tool" },
-      { id: "n3", type: "tool",      x: 460, y: 260, label: "Key Decisions",        sub: "LangChain tool" },
-      { id: "n4", type: "api",       x: 660, y: 180, label: "Notion API",           sub: "POST /pages" },
-      { id: "n5", type: "output",    x: 860, y: 180, label: "Summary Page",         sub: "Created in Notion" },
+      { id: "t1", type: "trigger",   x: 60,  y: 180, label: "Meeting Notes",       sub: "Text input" },
+      { id: "n1", type: "llm",       x: 260, y: 180, label: "Summarize",           sub: "Claude AI" },
+      { id: "n2", type: "tool",      x: 460, y: 100, label: "Action Items",        sub: "Extract tasks" },
+      { id: "n3", type: "tool",      x: 460, y: 260, label: "Key Decisions",       sub: "Extract decisions" },
+      { id: "n4", type: "output",    x: 660, y: 180, label: "Summary",             sub: "Structured output" },
     ],
     edges: [
       { from: "t1", to: "n1" },
@@ -27,72 +27,56 @@ const WORKFLOWS = {
       { from: "n1", to: "n3" },
       { from: "n2", to: "n4" },
       { from: "n3", to: "n4" },
-      { from: "n4", to: "n5" },
     ],
   },
   email: {
-    name: "Email Triage Agent",
-    description: "Classify → prioritize → route → draft reply",
+    name: "Email Triage",
+    placeholder: "Paste an email here...\n\nExample:\nFrom: client@company.com\nSubject: Urgent - Contract Issue\n\nHi, we need to discuss the contract terms before Friday. Can we schedule a call?",
+    workflowKey: "email_triage",
     nodes: [
-      { id: "t1", type: "trigger",   x: 60,  y: 200, label: "Email Received",      sub: "Gmail webhook" },
-      { id: "n1", type: "llm",       x: 260, y: 200, label: "Classify Email",      sub: "Priority · Category" },
-      { id: "c1", type: "condition", x: 460, y: 200, label: "Priority?",            sub: "HIGH / MED / LOW" },
-      { id: "n2", type: "llm",       x: 660, y: 100, label: "Draft Urgent Reply",  sub: "Immediate action" },
-      { id: "n3", type: "tool",      x: 660, y: 300, label: "Add to Queue",        sub: "Low priority inbox" },
-      { id: "n4", type: "api",       x: 860, y: 100, label: "Send Reply",           sub: "Gmail API" },
-      { id: "n5", type: "output",    x: 860, y: 300, label: "Queued",              sub: "Review later" },
+      { id: "t1", type: "trigger",   x: 60,  y: 200, label: "Email Input",        sub: "Raw email text" },
+      { id: "n1", type: "llm",       x: 260, y: 200, label: "Classify",           sub: "Claude AI" },
+      { id: "c1", type: "condition", x: 460, y: 200, label: "Priority?",           sub: "HIGH / MED / LOW" },
+      { id: "n2", type: "llm",       x: 660, y: 120, label: "Draft Reply",        sub: "Claude AI" },
+      { id: "n3", type: "output",    x: 660, y: 300, label: "Triage Result",      sub: "JSON output" },
     ],
     edges: [
       { from: "t1", to: "n1" },
       { from: "n1", to: "c1" },
       { from: "c1", to: "n2" },
       { from: "c1", to: "n3" },
-      { from: "n2", to: "n4" },
-      { from: "n3", to: "n5" },
     ],
   },
   data: {
-    name: "Data Extraction Pipeline",
-    description: "Ingest documents → extract structured JSON → validate → store",
+    name: "Data Extraction",
+    placeholder: "Paste any unstructured text to extract data from...\n\nExample:\nInvoice from Acme Corp dated March 19 2026. 10 software licenses at $299 each. Tax 8.5%. Total due $3,229 by April 19.",
+    workflowKey: "data_extraction",
     nodes: [
-      { id: "t1", type: "trigger",   x: 60,  y: 200, label: "Document Input",     sub: "PDF / text / HTML" },
-      { id: "n1", type: "tool",      x: 260, y: 200, label: "Parse Document",     sub: "Text extraction" },
-      { id: "n2", type: "llm",       x: 460, y: 200, label: "Extract Schema",     sub: "GPT-4o · temp 0.0" },
-      { id: "c1", type: "condition", x: 660, y: 200, label: "Valid JSON?",         sub: "Schema check" },
-      { id: "n3", type: "llm",       x: 660, y: 340, label: "Retry Extract",      sub: "Self-heal loop" },
-      { id: "n4", type: "api",       x: 860, y: 200, label: "Database API",        sub: "POST /records" },
-      { id: "n5", type: "output",    x: 1060,y: 200, label: "Stored Record",      sub: "Structured JSON" },
+      { id: "t1", type: "trigger",   x: 60,  y: 200, label: "Document Input",     sub: "Any text" },
+      { id: "n1", type: "tool",      x: 260, y: 200, label: "Parse",              sub: "Text extraction" },
+      { id: "n2", type: "llm",       x: 460, y: 200, label: "Extract Schema",     sub: "Claude AI" },
+      { id: "n3", type: "output",    x: 660, y: 200, label: "Structured JSON",    sub: "Clean data" },
     ],
     edges: [
       { from: "t1", to: "n1" },
       { from: "n1", to: "n2" },
-      { from: "n2", to: "c1" },
-      { from: "c1", to: "n4" },
-      { from: "c1", to: "n3" },
-      { from: "n3", to: "n2" },
-      { from: "n4", to: "n5" },
+      { from: "n2", to: "n3" },
     ],
   },
   report: {
-    name: "Auto Report Generator",
-    description: "Fetch data → analyze → generate report → deliver",
+    name: "Report Generator",
+    placeholder: "Paste raw data or metrics to generate a report from...\n\nExample:\nQ1 Revenue: $4.2M (+18% YoY)\nNew customers: 41, Churned: 9\nTop deal: FinanceCo $2.1M\nUptime: 99.97%",
+    workflowKey: "report",
     nodes: [
-      { id: "t1", type: "trigger",   x: 60,  y: 200, label: "Schedule Trigger",   sub: "Cron: daily 9am" },
-      { id: "n1", type: "api",       x: 260, y: 120, label: "Fetch Metrics",      sub: "Analytics API" },
-      { id: "n2", type: "api",       x: 260, y: 280, label: "Fetch Sales Data",   sub: "CRM API" },
-      { id: "n3", type: "llm",       x: 480, y: 200, label: "Analyze & Report",   sub: "GPT-4o · temp 0.4" },
-      { id: "n4", type: "tool",      x: 680, y: 200, label: "Format Report",      sub: "Markdown → PDF" },
-      { id: "n5", type: "api",       x: 860, y: 200, label: "Send via Email",     sub: "SMTP / SendGrid" },
-      { id: "n6", type: "output",    x: 1060,y: 200, label: "Report Delivered",   sub: "Stakeholders notified" },
+      { id: "t1", type: "trigger",   x: 60,  y: 200, label: "Raw Data",           sub: "Metrics / notes" },
+      { id: "n1", type: "llm",       x: 260, y: 200, label: "Analyze",            sub: "Claude AI" },
+      { id: "n2", type: "tool",      x: 460, y: 200, label: "Format Report",      sub: "Markdown" },
+      { id: "n3", type: "output",    x: 660, y: 200, label: "Report",             sub: "Full document" },
     ],
     edges: [
       { from: "t1", to: "n1" },
-      { from: "t1", to: "n2" },
-      { from: "n1", to: "n3" },
+      { from: "n1", to: "n2" },
       { from: "n2", to: "n3" },
-      { from: "n3", to: "n4" },
-      { from: "n4", to: "n5" },
-      { from: "n5", to: "n6" },
     ],
   },
 };
@@ -100,11 +84,7 @@ const WORKFLOWS = {
 const NODE_W = 160;
 const NODE_H = 68;
 
-function getCenter(node) {
-  return { x: node.x + NODE_W / 2, y: node.y + NODE_H / 2 };
-}
-
-function Edge({ from, to, nodes, animated, color = "#888" }) {
+function Edge({ from, to, nodes, animated }) {
   const a = nodes.find(n => n.id === from);
   const b = nodes.find(n => n.id === to);
   if (!a || !b) return null;
@@ -114,29 +94,20 @@ function Edge({ from, to, nodes, animated, color = "#888" }) {
   const y2 = b.y + NODE_H / 2;
   const cx = (x1 + x2) / 2;
   const d = `M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`;
-  const id = `dot-${from}-${to}`;
   return (
     <g>
-      <path d={d} fill="none" stroke="#d0cec8" strokeWidth="1.5" strokeDasharray={animated ? "6 4" : "none"} />
-      <path d={d} fill="none" stroke="transparent" strokeWidth="12" />
-      {animated && (
-        <>
-          <defs>
-            <marker id={`arr-${from}-${to}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-              <path d="M0,0.5 L5,3 L0,5.5" fill="none" stroke="#888" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </marker>
-          </defs>
-          <circle r="5" fill="#7F77DD" opacity="0.85">
-            <animateMotion dur={`${1.2 + Math.random() * 0.6}s`} repeatCount="indefinite" path={d} />
-          </circle>
-        </>
-      )}
+      <path d={d} fill="none" stroke="#d0cec8" strokeWidth="1.5" />
       <defs>
         <marker id={`a-${from}-${to}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0.5 L5,3 L0,5.5" fill="none" stroke="#b0ae a8" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M0,0.5 L5,3 L0,5.5" fill="none" stroke="#b0aea8" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </marker>
       </defs>
       <path d={d} fill="none" stroke="#b0aea8" strokeWidth="1.5" markerEnd={`url(#a-${from}-${to})`} />
+      {animated && (
+        <circle r="5" fill="#7F77DD" opacity="0.85">
+          <animateMotion dur="1.5s" repeatCount="indefinite" path={d} />
+        </circle>
+      )}
     </g>
   );
 }
@@ -146,11 +117,7 @@ function WorkflowNode({ node, selected, running, done, onClick }) {
   const isRunning = running === node.id;
   const isDone = done.includes(node.id);
   return (
-    <g
-      transform={`translate(${node.x},${node.y})`}
-      style={{ cursor: "pointer" }}
-      onClick={() => onClick(node)}
-    >
+    <g transform={`translate(${node.x},${node.y})`} style={{ cursor: "pointer" }} onClick={() => onClick(node)}>
       <rect
         width={NODE_W} height={NODE_H} rx="10"
         fill={isDone ? t.bg : selected ? t.bg : "#fff"}
@@ -168,63 +135,14 @@ function WorkflowNode({ node, selected, running, done, onClick }) {
       <text x="14" y="46" fontSize="13" fontWeight="500" fill="#2c2c2a" fontFamily="system-ui">{node.label}</text>
       <text x="14" y="60" fontSize="11" fill="#888780" fontFamily="system-ui">{node.sub}</text>
       {isDone && (
-        <circle cx={NODE_W - 14} cy="14" r="8" fill={t.color}>
+        <g>
+          <circle cx={NODE_W - 14} cy="14" r="8" fill={t.color} />
           <text x={NODE_W - 14} y="14" fontSize="10" fill="#fff" textAnchor="middle" dominantBaseline="central">✓</text>
-        </circle>
+        </g>
       )}
     </g>
   );
 }
-
-const LOGS = {
-  meeting: [
-    { node: "t1", msg: "▶ Received transcript (2,340 tokens)", ms: 0 },
-    { node: "n1", msg: "🧠 Summarizing with GPT-4o...", ms: 800 },
-    { node: "n1", msg: "✓ Summary generated (312 tokens)", ms: 2200 },
-    { node: "n2", msg: "🔧 Extracting action items...", ms: 2400 },
-    { node: "n3", msg: "🔧 Extracting key decisions...", ms: 2400 },
-    { node: "n2", msg: "✓ Found 4 action items", ms: 3500 },
-    { node: "n3", msg: "✓ Found 3 decisions", ms: 3700 },
-    { node: "n4", msg: "🌐 POST /pages → Notion API", ms: 3900 },
-    { node: "n4", msg: "✓ 200 OK — page created", ms: 4800 },
-    { node: "n5", msg: "📤 Output: notion.so/meeting-2026-03-18", ms: 5000 },
-  ],
-  email: [
-    { node: "t1", msg: "▶ Email webhook received", ms: 0 },
-    { node: "n1", msg: "🧠 Classifying email...", ms: 600 },
-    { node: "n1", msg: "✓ Priority: HIGH | Category: ACTION_REQUIRED", ms: 1800 },
-    { node: "c1", msg: "◆ Condition: HIGH → urgent path", ms: 2000 },
-    { node: "n2", msg: "🧠 Drafting urgent reply...", ms: 2200 },
-    { node: "n2", msg: "✓ Draft ready (3 paragraphs)", ms: 3400 },
-    { node: "n4", msg: "🌐 Gmail API → sending reply...", ms: 3600 },
-    { node: "n4", msg: "✓ Reply sent", ms: 4500 },
-  ],
-  data: [
-    { node: "t1", msg: "▶ Invoice PDF received (8 pages)", ms: 0 },
-    { node: "n1", msg: "🔧 Parsing PDF text...", ms: 400 },
-    { node: "n1", msg: "✓ Extracted 1,840 chars", ms: 1200 },
-    { node: "n2", msg: "🧠 Extracting schema (temp=0.0)...", ms: 1400 },
-    { node: "n2", msg: "✓ JSON extracted (14 fields)", ms: 2800 },
-    { node: "c1", msg: "◆ Validating schema...", ms: 3000 },
-    { node: "c1", msg: "✓ Valid JSON — proceeding", ms: 3400 },
-    { node: "n4", msg: "🌐 POST /records → Database", ms: 3600 },
-    { node: "n4", msg: "✓ 201 Created — id: rec_8f3k2p", ms: 4400 },
-    { node: "n5", msg: "📤 Stored: invoice #INV-2026-00847", ms: 4600 },
-  ],
-  report: [
-    { node: "t1", msg: "▶ Cron trigger fired — 09:00 UTC", ms: 0 },
-    { node: "n1", msg: "🌐 GET /metrics → Analytics API", ms: 300 },
-    { node: "n2", msg: "🌐 GET /deals → CRM API", ms: 300 },
-    { node: "n1", msg: "✓ Metrics received (Q1 data)", ms: 1400 },
-    { node: "n2", msg: "✓ Sales data received (187 deals)", ms: 1600 },
-    { node: "n3", msg: "🧠 Analyzing & writing report...", ms: 1800 },
-    { node: "n3", msg: "✓ Report generated (1,200 words)", ms: 4200 },
-    { node: "n4", msg: "🔧 Converting Markdown → PDF", ms: 4400 },
-    { node: "n4", msg: "✓ PDF ready (2.1 MB)", ms: 5200 },
-    { node: "n5", msg: "🌐 SendGrid → emailing 6 stakeholders", ms: 5400 },
-    { node: "n6", msg: "📤 Delivered — all recipients confirmed", ms: 6200 },
-  ],
-};
 
 export default function App() {
   const [activeWf, setActiveWf] = useState("meeting");
@@ -233,9 +151,9 @@ export default function App() {
   const [doneNodes, setDoneNodes] = useState([]);
   const [logs, setLogs] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef(null);
+  const [inputText, setInputText] = useState("");
+  const [aiOutput, setAiOutput] = useState("");
+  const [showOutput, setShowOutput] = useState(false);
   const logsRef = useRef(null);
   const wf = WORKFLOWS[activeWf];
 
@@ -245,235 +163,193 @@ export default function App() {
     setLogs([]);
     setRunning(null);
     setIsRunning(false);
-    setPan({ x: 0, y: 0 });
+    setInputText("");
+    setAiOutput("");
+    setShowOutput(false);
   }, [activeWf]);
 
   useEffect(() => {
     if (logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight;
   }, [logs]);
 
-const runWorkflow = useCallback(async () => {
+  const addLog = (nodeId, msg) => {
+    setLogs(prev => [...prev, { node: nodeId, msg, ts: new Date().toLocaleTimeString() }]);
+  };
+
+  const runWorkflow = useCallback(async () => {
     if (isRunning) return;
+    if (!inputText.trim()) {
+      alert("Please enter some input text first!");
+      return;
+    }
+
     setIsRunning(true);
     setDoneNodes([]);
     setLogs([]);
     setRunning(null);
+    setAiOutput("");
+    setShowOutput(false);
 
-    const steps = LOGS[activeWf];
-    const nodeOrder = [...new Set(steps.map(s => s.node))];
+    const nodes = wf.nodes;
 
-    // Simulate visual animation
-    steps.forEach((step, i) => {
-      setTimeout(() => {
-        setRunning(step.node);
-        setLogs(prev => [...prev, { ...step, ts: new Date().toLocaleTimeString() }]);
-      }, step.ms);
-    });
+    // Animate through nodes one by one
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      setRunning(node.id);
+      addLog(node.id, `${NODE_TYPES[node.type].icon} Running: ${node.label}...`);
+      await new Promise(r => setTimeout(r, 800));
+      setDoneNodes(prev => [...prev, node.id]);
+    }
 
-    nodeOrder.forEach((nid) => {
-      const lastStep = [...steps].reverse().find(s => s.node === nid);
-      if (lastStep) {
-        setTimeout(() => {
-          setDoneNodes(prev => [...prev, nid]);
-        }, lastStep.ms + 300);
+    // Now make the real API call
+    setRunning("api_call");
+    addLog(nodes[nodes.length - 1].id, "🌐 Calling Claude AI...");
+
+    try {
+      const response = await fetch("http://localhost:8000/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflow: wf.workflowKey,
+          input: inputText,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.output) {
+        addLog(nodes[nodes.length - 1].id, "✅ Claude AI responded successfully!");
+        setAiOutput(result.output);
+        setShowOutput(true);
+      } else {
+        addLog(nodes[nodes.length - 1].id, "⚠️ Error: " + (result.detail || JSON.stringify(result)));
       }
-    });
+    } catch (err) {
+      addLog(nodes[nodes.length - 1].id, "⚠️ Backend not reachable — is it running on port 8000?");
+    }
 
-    // Real API call to backend
-    const maxMs = Math.max(...steps.map(s => s.ms)) + 3000;
-    setTimeout(async () => {
-      try {
-        const sampleInputs = {
-          meeting: "Alice and Bob met on March 19 to discuss Q2 roadmap. Alice will write the product spec by Friday. Bob will set up the CI/CD pipeline by end of month. Decision: use Python for backend.",
-          email: "From: boss@company.com\nSubject: Urgent - Client Demo Tomorrow\nWe need the demo ready by 9am tomorrow. Please confirm you can make it happen.",
-          data: "Invoice #INV-2026-001 from Acme Corp. Date: March 19 2026. Due: April 19 2026. Items: 10x Software License at $299 each = $2990. Tax: $239. Total: $3229.",
-          report: "Q1 2026 Results: Revenue $4.2M (up 18% YoY). New customers: 41. Churn: 9. Uptime: 99.97%. Top win: signed FinanceCo for $2.1M.",
-        };
-
-        const workflowMap = {
-          meeting: "meeting_summary",
-          email: "email_triage",
-          data: "data_extraction",
-          report: "report",
-        };
-
-        const response = await fetch("http://localhost:8000/run", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workflow: workflowMap[activeWf],
-            input: sampleInputs[activeWf],
-          }),
-        });
-
-        const result = await response.json();
-        const output = result?.output || result?.detail || JSON.stringify(result);
-        setLogs(prev => [
-          ...prev,
-          { node: wf.nodes[wf.nodes.length - 1].id, msg: "🤖 Claude: " + output.slice(0, 200) + "...", ts: new Date().toLocaleTimeString() }
-        ]);
-      } catch (err) {
-        setLogs(prev => [
-          ...prev,
-          { node: wf.nodes[wf.nodes.length - 1].id, msg: "⚠️ Backend not connected — showing simulation", ts: new Date().toLocaleTimeString() }
-        ]);
-      }
-      setRunning(null);
-      setIsRunning(false);
-    }, maxMs);
-  }, [activeWf, isRunning]);
-
-  const handleMouseDown = (e) => {
-    if (e.target.closest("g[style*='cursor: pointer']")) return;
-    setIsPanning(true);
-    panStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-  };
-  const handleMouseMove = (e) => {
-    if (!isPanning) return;
-    setPan({ x: e.clientX - panStart.current.x, y: e.clientY - panStart.current.y });
-  };
-  const handleMouseUp = () => setIsPanning(false);
+    setRunning(null);
+    setIsRunning(false);
+  }, [activeWf, isRunning, inputText, wf]);
 
   const svgW = Math.max(...wf.nodes.map(n => n.x + NODE_W)) + 80;
   const svgH = Math.max(...wf.nodes.map(n => n.y + NODE_H)) + 80;
-
-  const sel = selectedNode ? wf.nodes.find(n => n.id === selectedNode.id) : null;
-  const selType = sel ? NODE_TYPES[sel.type] : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#f7f5f0", fontFamily: "'JetBrains Mono', 'Fira Mono', monospace" }}>
 
       {/* Header */}
-      <div style={{ background: "#1a1917", color: "#f0ede6", padding: "0 20px", display: "flex", alignItems: "center", gap: "16px", height: "52px", flexShrink: 0, borderBottom: "1px solid #333" }}>
+      <div style={{ background: "#1a1917", color: "#f0ede6", padding: "0 20px", display: "flex", alignItems: "center", gap: "16px", height: "52px", flexShrink: 0 }}>
         <span style={{ fontSize: "15px", fontWeight: 600, letterSpacing: "0.05em", color: "#c8c4bc" }}>⚡ FLOW</span>
-        <span style={{ color: "#555", fontSize: "18px" }}>|</span>
-        <span style={{ fontSize: "13px", color: "#888", fontWeight: 400 }}>AI Workflow Automation Agent</span>
+        <span style={{ color: "#555" }}>|</span>
+        <span style={{ fontSize: "13px", color: "#888" }}>AI Workflow Automation Agent</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
           {Object.entries(WORKFLOWS).map(([k, w]) => (
-            <button
-              key={k}
-              onClick={() => setActiveWf(k)}
-              style={{
-                padding: "5px 12px", fontSize: "11px", borderRadius: "6px", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 500, letterSpacing: "0.03em",
-                background: activeWf === k ? "#7F77DD" : "#2a2927", color: activeWf === k ? "#fff" : "#888",
-                transition: "all 0.15s"
-              }}
-            >
+            <button key={k} onClick={() => setActiveWf(k)} style={{
+              padding: "5px 12px", fontSize: "11px", borderRadius: "6px", border: "none", cursor: "pointer",
+              fontFamily: "inherit", fontWeight: 500, letterSpacing: "0.03em",
+              background: activeWf === k ? "#7F77DD" : "#2a2927",
+              color: activeWf === k ? "#fff" : "#888", transition: "all 0.15s"
+            }}>
               {w.name.split(" ")[0].toUpperCase()}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #e8e5df", padding: "8px 20px", display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
-        <div>
-          <div style={{ fontSize: "14px", fontWeight: 600, color: "#2c2c2a" }}>{wf.name}</div>
-          <div style={{ fontSize: "11px", color: "#888", marginTop: "1px" }}>{wf.description}</div>
-        </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
-          <div style={{ display: "flex", gap: "6px" }}>
-            {Object.entries(NODE_TYPES).map(([k, t]) => (
-              <span key={k} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "4px", background: t.bg, color: t.color, border: `1px solid ${t.border}`, fontWeight: 500 }}>
-                {t.icon} {t.label}
-              </span>
-            ))}
-          </div>
-          <button
-            onClick={runWorkflow}
-            disabled={isRunning}
-            style={{
-              padding: "7px 18px", fontSize: "12px", fontWeight: 600, borderRadius: "8px", border: "none", cursor: isRunning ? "not-allowed" : "pointer",
-              background: isRunning ? "#9e9c96" : "#0F6E56", color: "#fff", fontFamily: "inherit", letterSpacing: "0.05em",
-              transition: "all 0.2s"
-            }}
-          >
-            {isRunning ? "⏳ RUNNING..." : "▶ RUN WORKFLOW"}
-          </button>
-        </div>
-      </div>
-
       {/* Main */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
 
-        {/* Canvas */}
-        <div
-          style={{ flex: 1, overflow: "hidden", position: "relative", cursor: isPanning ? "grabbing" : "grab" }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
-          {/* Dot grid */}
-          <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
-            <defs>
-              <pattern id="dots" x={pan.x % 24} y={pan.y % 24} width="24" height="24" patternUnits="userSpaceOnUse">
-                <circle cx="1" cy="1" r="1" fill="#d8d5cf" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#dots)" />
-          </svg>
+        {/* Left — Input + Canvas */}
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
 
-          <svg
-            width={svgW} height={svgH}
-            style={{ transform: `translate(${pan.x}px, ${pan.y}px)`, position: "absolute", top: 40, left: 40, overflow: "visible" }}
-          >
-            {/* Edges */}
-            {wf.edges.map(e => (
-              <Edge key={`${e.from}-${e.to}`} from={e.from} to={e.to} nodes={wf.nodes} animated={isRunning} />
-            ))}
-            {/* Nodes */}
-            {wf.nodes.map(node => (
-              <WorkflowNode
-                key={node.id} node={node}
-                selected={selectedNode?.id === node.id}
-                running={running} done={doneNodes}
-                onClick={setSelectedNode}
-              />
-            ))}
-          </svg>
+          {/* Input area */}
+          <div style={{ background: "#fff", borderBottom: "1px solid #e8e5df", padding: "16px 20px", flexShrink: 0 }}>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "#2c2c2a", marginBottom: "8px" }}>
+              {wf.name} — Input
+            </div>
+            <textarea
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              placeholder={wf.placeholder}
+              style={{
+                width: "100%", height: "100px", padding: "10px 12px", fontSize: "12px",
+                fontFamily: "inherit", border: "1px solid #dbd9d3", borderRadius: "8px",
+                background: "#faf9f7", color: "#2c2c2a", resize: "none", outline: "none",
+                boxSizing: "border-box", lineHeight: "1.6"
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+              <button
+                onClick={runWorkflow}
+                disabled={isRunning}
+                style={{
+                  padding: "8px 20px", fontSize: "12px", fontWeight: 600, borderRadius: "8px",
+                  border: "none", cursor: isRunning ? "not-allowed" : "pointer",
+                  background: isRunning ? "#9e9c96" : "#0F6E56", color: "#fff",
+                  fontFamily: "inherit", letterSpacing: "0.05em", transition: "all 0.2s"
+                }}
+              >
+                {isRunning ? "⏳ RUNNING..." : "▶ RUN WORKFLOW"}
+              </button>
+            </div>
+          </div>
 
-          {/* Node detail panel */}
-          {sel && selType && (
-            <div style={{
-              position: "absolute", bottom: 20, left: 20, width: "260px",
-              background: "#fff", borderRadius: "12px", border: `1.5px solid ${selType.border}`,
-              padding: "16px", boxShadow: "0 4px 20px rgba(0,0,0,0.08)"
-            }}>
+          {/* Canvas */}
+          <div style={{ flex: 1, overflow: "auto", position: "relative", background: "#f7f5f0" }}>
+            <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+              <defs>
+                <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+                  <circle cx="1" cy="1" r="1" fill="#d8d5cf" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#dots)" />
+            </svg>
+            <svg width={svgW} height={svgH} style={{ position: "relative", top: 40, left: 40, overflow: "visible" }}>
+              {wf.edges.map(e => (
+                <Edge key={`${e.from}-${e.to}`} from={e.from} to={e.to} nodes={wf.nodes} animated={isRunning} />
+              ))}
+              {wf.nodes.map(node => (
+                <WorkflowNode key={node.id} node={node} selected={selectedNode?.id === node.id}
+                  running={running} done={doneNodes} onClick={setSelectedNode} />
+              ))}
+            </svg>
+          </div>
+
+          {/* Output area */}
+          {showOutput && (
+            <div style={{ background: "#fff", borderTop: "2px solid #5DCAA5", padding: "16px 20px", maxHeight: "260px", overflow: "auto", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-                <span style={{ fontSize: "20px" }}>{selType.icon}</span>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: selType.color }}>{selType.label}</div>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: "#2c2c2a" }}>{sel.label}</div>
-                </div>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#0F6E56" }}>✅ Claude AI Output</span>
+                <button onClick={() => { setShowOutput(false); setAiOutput(""); }}
+                  style={{ marginLeft: "auto", fontSize: "11px", background: "none", border: "1px solid #ddd", borderRadius: "6px", padding: "2px 8px", cursor: "pointer", color: "#888" }}>
+                  clear
+                </button>
               </div>
-              <div style={{ fontSize: "11px", color: "#888", borderTop: "1px solid #f0ede6", paddingTop: "10px" }}>
-                <div style={{ marginBottom: "4px" }}><b>Sub:</b> {sel.sub}</div>
-                <div style={{ marginBottom: "4px" }}><b>Type:</b> {sel.type}</div>
-                <div><b>Status:</b> {doneNodes.includes(sel.id) ? "✅ complete" : running === sel.id ? "⏳ running" : "⬜ idle"}</div>
-              </div>
-              <button onClick={() => setSelectedNode(null)} style={{ marginTop: "10px", fontSize: "11px", background: "none", border: "1px solid #ddd", borderRadius: "6px", padding: "3px 10px", cursor: "pointer", color: "#888" }}>close</button>
+              <pre style={{ fontSize: "12px", color: "#2c2c2a", whiteSpace: "pre-wrap", lineHeight: "1.7", margin: 0, fontFamily: "inherit" }}>
+                {aiOutput}
+              </pre>
             </div>
           )}
         </div>
 
-        {/* Log panel */}
-        <div style={{ width: "300px", background: "#1a1917", display: "flex", flexDirection: "column", borderLeft: "1px solid #2a2927", flexShrink: 0 }}>
+        {/* Right — Log panel */}
+        <div style={{ width: "280px", background: "#1a1917", display: "flex", flexDirection: "column", borderLeft: "1px solid #2a2927", flexShrink: 0 }}>
           <div style={{ padding: "12px 16px", borderBottom: "1px solid #2a2927", display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "11px", fontWeight: 600, color: "#888", letterSpacing: "0.1em" }}>EXECUTION LOG</span>
             {isRunning && <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#5DCAA5", animation: "pulse 1s infinite" }} />}
-            {logs.length > 0 && !isRunning && <span style={{ fontSize: "10px", color: "#5DCAA5", marginLeft: "auto" }}>✓ done</span>}
           </div>
           <div ref={logsRef} style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: "6px" }}>
             {logs.length === 0 && (
-              <div style={{ color: "#444", fontSize: "12px", marginTop: "20px", textAlign: "center" }}>
-                Click <b style={{ color: "#5DCAA5" }}>▶ RUN WORKFLOW</b> to start
+              <div style={{ color: "#444", fontSize: "12px", marginTop: "20px", textAlign: "center", lineHeight: "1.6" }}>
+                Type your input<br />and click ▶ RUN
               </div>
             )}
             {logs.map((log, i) => {
-              const t = NODE_TYPES[wf.nodes.find(n => n.id === log.node)?.type];
+              const nodeType = wf.nodes.find(n => n.id === log.node)?.type;
+              const t = NODE_TYPES[nodeType] || NODE_TYPES.output;
               return (
-                <div key={i} style={{ fontSize: "11px", color: "#b0aea8", lineHeight: "1.5", borderLeft: `2px solid ${t?.border || "#444"}`, paddingLeft: "8px" }}>
+                <div key={i} style={{ fontSize: "11px", color: "#b0aea8", lineHeight: "1.5", borderLeft: `2px solid ${t.border}`, paddingLeft: "8px" }}>
                   <span style={{ color: "#555", marginRight: "6px" }}>{log.ts}</span>
                   <span>{log.msg}</span>
                 </div>
@@ -488,13 +364,13 @@ const runWorkflow = useCallback(async () => {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 {[
                   { label: "Nodes", val: doneNodes.length },
-                  { label: "Duration", val: `${(Math.max(...LOGS[activeWf].map(l => l.ms)) / 1000).toFixed(1)}s` },
-                  { label: "Status", val: "Success" },
-                  { label: "Output", val: "✓ ready" },
+                  { label: "Status", val: aiOutput ? "✅ Done" : "⚠️ Check" },
+                  { label: "Model", val: "Claude" },
+                  { label: "Output", val: aiOutput ? "Ready" : "—" },
                 ].map(stat => (
                   <div key={stat.label} style={{ background: "#2a2927", borderRadius: "6px", padding: "6px 10px" }}>
                     <div style={{ fontSize: "10px", color: "#555" }}>{stat.label}</div>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#c8c4bc" }}>{stat.val}</div>
+                    <div style={{ fontSize: "12px", fontWeight: 600, color: "#c8c4bc" }}>{stat.val}</div>
                   </div>
                 ))}
               </div>
@@ -508,6 +384,7 @@ const runWorkflow = useCallback(async () => {
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+        textarea::placeholder { color: #aaa; }
       `}</style>
     </div>
   );
